@@ -71,14 +71,14 @@
 //                 subtitle: Text(
 //                   DateFormat('dd MMM yyyy').format(todo.createdOn.toDate()),
 //                 ),
-//                 trailing: Checkbox(
-//                   value: todo.isDone,
-//                   onChanged: (value) {
-//                     Todo updatedTodo = todo.copyWith(isDone: !todo.isDone, updatedOn: Timestamp.now());
-//                   //  _databaseService.updateTodo(id, todo.copyWith(isDone: value));
-//                   _databaseService.updateTodo(id: id, todo: updatedTodo);
-//                   },
-//               ),
+              //   trailing: Checkbox(
+              //     value: todo.isDone,
+              //     onChanged: (value) {
+              //       Todo updatedTodo = todo.copyWith(isDone: !todo.isDone, updatedOn: Timestamp.now());
+              //     //  _databaseService.updateTodo(id, todo.copyWith(isDone: value));
+              //     _databaseService.updateTodo(id: id, todo: updatedTodo);
+              //     },
+              // ),
               
 //             ),
 //             );
@@ -105,19 +105,121 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+  TabController? _tabController;
   final DatabaseService _databaseService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _appBar(),
-      body: _buildUI(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToNewComplaint,
-        tooltip: 'Add Complaint',
-        child: const Icon(Icons.add),
+      appBar: AppBar(
+        title: const Text('Complaints and Requests'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Cable'),
+            Tab(text: 'Internet'),
+          ],
+        ),
       ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildComplaintList('Cable'),
+          _buildComplaintList('Internet'),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(onPressed: (){
+        _navigateToNewComplaint();
+      },
+      child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildComplaintList(String serviceType) {
+    return StreamBuilder<QuerySnapshot<Complaint>>(
+      stream: _databaseService.getComplaintsByServiceType(serviceType),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Something went wrong'));
+        }
+        if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('Nothing Found'));
+        }
+
+        List<DocumentSnapshot<Complaint>> complaints = snapshot.data!.docs;
+      complaints.sort((a, b) =>
+          b.data()!.createdOn.compareTo(a.data()!.createdOn));
+        return ListView.builder(
+          itemCount: complaints.length,
+          itemBuilder: (context, index) {
+            Complaint complaint = complaints[index].data()!;
+                        String id = complaints[index].id;
+
+            return Card(
+                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                elevation: 8,
+                shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: complaint.isDone ? Colors.green[100] : Colors.red[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    leading: Icon(
+                      complaint.isDone ? Icons.check_circle_outline : Icons.error_outline,
+                      color: complaint.isDone ? Colors.green : Colors.red,
+                      size: 30,
+                    ),
+                title: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(complaint.name),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 10,),
+                    Text("Created On :- ${DateFormat('dd-MMM-yy hh:mm a').format(complaint.createdOn.toDate())}",style: TextStyle(fontSize: 12),),
+                    SizedBox(height: 10,),
+                    Text("Update On :- ${DateFormat('dd-MMM-yy hh:mm a').format(complaint.updatedOn.toDate())}",style: TextStyle(fontSize: 12),),
+                    SizedBox(height: 10,),
+
+                  ],
+                ),
+                onTap: () => _showComplaintDetailsDialog(complaint),
+                trailing: Checkbox(
+                      value: complaint.isDone,
+                      onChanged: (value) {
+                        Complaint updatedComplaint = complaint.copyWith(isDone: value!, updatedOn: Timestamp.now());
+                        _databaseService.updateComplaint(id, updatedComplaint);
+                      },
+                      activeColor: Theme.of(context).primaryColor,
+                    ),
+              ),
+                )
+            );
+          },
+        );
+      },
     );
   }
 
@@ -217,35 +319,117 @@ void _navigateToNewComplaint() {
     ));
   }
 
-  
-void _showComplaintDetailsDialog(Complaint complaint) {
+  void _showComplaintDetailsDialog(Complaint complaint) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('${complaint.serviceType} Request'),
-        content: SingleChildScrollView(
-          child: ListBody(
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Name: ${complaint.name}'),
-              Text('Phone Number: ${complaint.phoneNumber}'),
-              Text('Address: ${complaint.address}'),
-              Text('Issue: ${complaint.issueDescription ?? 'No description'}'),
+              Text(
+                '${complaint.serviceType} Request',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue, // Adjust color as needed
+                ),
+              ),
+              SizedBox(height: 10),
+              _buildDetailRow('Service Type:', complaint.requestType),
+              _buildDetailRow('Name:', complaint.name),
+              _buildDetailRow('Phone Number:', complaint.phoneNumber),
+              _buildDetailRow('Address:', complaint.address),
+              _buildDetailRow('Issue:', complaint.issueDescription ?? 'No description'),
+              SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue, // Adjust color as needed
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Close'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
       );
     },
   );
 }
+
+Widget _buildDetailRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87, // Adjust color as needed
+          ),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black87, // Adjust color as needed
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
+  
+// void _showComplaintDetailsDialog(Complaint complaint) {
+//   showDialog(
+//     context: context,
+//     builder: (BuildContext context) {
+//       return AlertDialog(
+//         title: Text('${complaint.serviceType} Request'),
+//         content: SingleChildScrollView(
+//           child: ListBody(
+//             children: <Widget>[
+//               Text('Name: ${complaint.name}'),
+//               Text('Phone Number: ${complaint.phoneNumber}'),
+//               Text('Address: ${complaint.address}'),
+//               Text('Issue: ${complaint.issueDescription ?? 'No description'}'),
+//             ],
+//           ),
+//         ),
+//         actions: <Widget>[
+//           TextButton(
+//             child: Text('Close'),
+//             onPressed: () {
+//               Navigator.of(context).pop();
+//             },
+//           ),
+//         ],
+//       );
+//     },
+//   );
+// }
 
 
 }

@@ -92,6 +92,17 @@ class DatabaseService {
     );
   }
 
+  Stream<QuerySnapshot<Complaint>> getComplaintsByServiceType(String serviceType) {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  return _firestore.collection('complaints')
+    .where('serviceType', isEqualTo: serviceType)
+    .withConverter<Complaint>(
+      fromFirestore: (snapshot, _) => Complaint.fromJson(snapshot.data()!),
+      toFirestore: (complaint, _) => complaint.toJson(),
+    ).snapshots();
+}
+
   Stream<QuerySnapshot> getComplaints() {
     return _complaintsRef.snapshots();
   }
