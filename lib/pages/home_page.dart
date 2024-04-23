@@ -137,7 +137,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildComplaintList('Cable'),
+          _buildComplaintList('Cable TV'),
           _buildComplaintList('Internet'),
         ],
       ),
@@ -171,7 +171,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           itemBuilder: (context, index) {
             Complaint complaint = complaints[index].data()!;
                         String id = complaints[index].id;
-
+            print("complaints:- $complaint  id:- $id");
             return Card(
                 margin: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 elevation: 8,
@@ -200,7 +200,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     SizedBox(height: 10,),
                     Text("Created On :- ${DateFormat('dd-MMM-yy hh:mm a').format(complaint.createdOn.toDate())}",style: TextStyle(fontSize: 12),),
                     SizedBox(height: 10,),
-                    Text("Update On :- ${DateFormat('dd-MMM-yy hh:mm a').format(complaint.updatedOn.toDate())}",style: TextStyle(fontSize: 12),),
+                    Container(
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Update On :- ${DateFormat('dd-MMM-yy hh:mm a').format(complaint.updatedOn.toDate())}",style: TextStyle(fontSize: 12),),
+                           Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: IconButton(
+                        icon: Icon(Icons.delete,color: Colors.red,),
+                        onPressed: (){
+                          _databaseService.deleteComplaint(id);
+                        },
+                      ),
+                    )
+                        ],
+                      ),
+                    ),
                     SizedBox(height: 10,),
 
                   ],
@@ -266,6 +283,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           itemBuilder: (context, index) {
             Complaint complaint = complaints[index].data();
             String id = complaints[index].id;
+            print("complaints:- $complaint  id:- $id");
             return InkWell(
               onTap: () => _showComplaintDetailsDialog(complaint),
               child: Card(
