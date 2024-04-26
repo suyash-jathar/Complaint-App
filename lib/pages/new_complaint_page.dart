@@ -14,6 +14,18 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _issueController = TextEditingController();
+  final TextEditingController _attendantController = TextEditingController();
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _issueController.dispose();
+    _attendantController.dispose();
+  }
 
   String _selectedService = 'Cable TV'; // default or first item in dropdown
   String _requestType = 'New Connection'; // default or first item in dropdown
@@ -22,7 +34,7 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Complaint'),
+        title: const Text('Complaint/ Service Request'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -83,6 +95,12 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
                 maxLines: 3,
                 validator: (value) => value!.isEmpty ? 'Please describe the issue' : null,
               ),
+              TextFormField(
+                controller: _attendantController,
+                decoration: InputDecoration(labelText: 'Attendant Name'),
+                maxLines: 1,
+                validator: (value) => value!.isEmpty ? 'Please Enter Attendant Name' : null,
+              ),
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _submitForm,
@@ -107,6 +125,7 @@ class _NewComplaintPageState extends State<NewComplaintPage> {
         createdOn: Timestamp.now(),
         updatedOn: Timestamp.now(),
         isDone: false,
+        completedBy: _attendantController.text,
       );
 
       // Here you would typically call a service to save the complaint to Firestore

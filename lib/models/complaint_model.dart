@@ -11,6 +11,7 @@ class Complaint {
   Timestamp createdOn;
   Timestamp updatedOn;
   bool isDone;
+  String? completedBy; // Added field for the name of the person who completed the service
 
   Complaint({
     required this.serviceType,
@@ -23,6 +24,7 @@ class Complaint {
     required this.createdOn,
     required this.updatedOn,
     required this.isDone,
+    this.completedBy, // Updated constructor to include completedBy field
   });
 
   Complaint.fromJson(Map<String, dynamic> json)
@@ -35,7 +37,8 @@ class Complaint {
         issueDescription = json['issueDescription'] as String?,
         createdOn = json['createdOn'] as Timestamp,
         updatedOn = json['updatedOn'] as Timestamp,
-        isDone = json['isDone'] as bool;
+        isDone = json['isDone'] as bool,
+        completedBy = json['completedBy'] as String?; // Deserialize completedBy field
 
   Map<String, dynamic> toJson() => {
         'serviceType': serviceType,
@@ -48,6 +51,7 @@ class Complaint {
         'createdOn': createdOn,
         'updatedOn': updatedOn,
         'isDone': isDone,
+        'completedBy': completedBy, // Serialize completedBy field
       };
 
   Complaint copyWith({
@@ -61,6 +65,7 @@ class Complaint {
     Timestamp? createdOn,
     Timestamp? updatedOn,
     bool? isDone,
+    String? completedBy, // Include completedBy in copyWith method
   }) {
     return Complaint(
       serviceType: serviceType ?? this.serviceType,
@@ -73,6 +78,7 @@ class Complaint {
       createdOn: createdOn ?? this.createdOn,
       updatedOn: updatedOn ?? this.updatedOn,
       isDone: isDone ?? this.isDone,
+      completedBy: completedBy ?? this.completedBy, // Update completedBy
     );
   }
 }
