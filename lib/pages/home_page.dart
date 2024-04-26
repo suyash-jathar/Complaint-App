@@ -22,6 +22,8 @@ class _HomePageState extends State<HomePage>
       FirebaseFirestore.instance.collection('complaints');
   TextEditingController _nameController = TextEditingController(); 
 
+  final TextEditingController _searchController = TextEditingController();
+
 // Method to show the dialog box for entering the name of the person who completed the service
   Future<void> _showCompletionDialog(Complaint complaint, String id) async {
     return showDialog<void>(
@@ -210,30 +212,58 @@ class _HomePageState extends State<HomePage>
   }
 
 
-  ///Completed Tab
   Widget _buildCompletedList(bool isDone) {
-    return StreamBuilder<QuerySnapshot<Complaint>>(
-      stream: _databaseService.getCompletedCollection(isDone),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return const Center(child: Text('Something went wrong'));
-        }
-        if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('Nothing Found'));
-        }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by name',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                // This will trigger a rebuild when the search query changes
+              });
+            },
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot<Complaint>>(
+            stream: _databaseService.getCompletedCollection(isDone),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return const Center(child: Text('Something went wrong'));
+              }
+              if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('Nothing Found'));
+              }
 
-        List<DocumentSnapshot<Complaint>> complaints = snapshot.data!.docs;
-        complaints
-            .sort((a, b) => b.data()!.createdOn.compareTo(a.data()!.createdOn));
-        return ListView.builder(
-          itemCount: complaints.length,
-          itemBuilder: (context, index) {
-            Complaint complaint = complaints[index].data()!;
-            String id = complaints[index].id;
-            return Card(
+              List<DocumentSnapshot<Complaint>> complaints =
+                  snapshot.data!.docs;
+              complaints
+                  .sort((a, b) => b.data()!.createdOn.compareTo(a.data()!.createdOn));
+
+              // Filter the list based on the search query
+              final searchQuery = _searchController.text.toLowerCase();
+              final filteredComplaints = complaints.where((complaint) =>
+                  complaint.data()!.name.toLowerCase().contains(searchQuery));
+
+              return ListView.builder(
+                itemCount: filteredComplaints.length,
+                itemBuilder: (context, index) {
+                  Complaint complaint =
+                      filteredComplaints.elementAt(index).data()!;
+                  String id = filteredComplaints.elementAt(index).id;
+                  return Card(
                 margin: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 elevation: 8,
                 shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
@@ -290,21 +320,25 @@ class _HomePageState extends State<HomePage>
                       ],
                     ),
                     onTap: () => _showComplaintDetailsDialog(complaint),
-                    trailing: Checkbox(
-                      value: complaint.isDone,
-                      onChanged: (value) {
-                        Complaint updatedComplaint = complaint.copyWith(
-                            isDone: value!, updatedOn: Timestamp.now());
-                        // _databaseService.updateComplaint(id, updatedComplaint);
-                        _showCompletionDialog(updatedComplaint, id);
-                      },
-                      activeColor: Theme.of(context).primaryColor,
-                    ),
+                    trailing: Text(complaint.completedBy ?? 'No Attendee',style: TextStyle(fontSize: 12),)
+                    // Checkbox(
+                    //   value: complaint.isDone,
+                    //   onChanged: (value) {
+                    //     Complaint updatedComplaint = complaint.copyWith(
+                    //         isDone: value!, updatedOn: Timestamp.now());
+                    //     // _databaseService.updateComplaint(id, updatedComplaint);
+                    //     _showCompletionDialog(updatedComplaint, id);
+                    //   },
+                    //   activeColor: Theme.of(context).primaryColor,
+                    // ),
                   ),
                 ));
-          },
-        );
-      },
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
